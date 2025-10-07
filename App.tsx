@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Message, Sender, Command } from './types';
+import { Message, Sender, Command, TiktokResult, TiktokApiResponse } from './types';
 import ChatMessage from './components/ChatMessage';
 import InputBar from './components/InputBar';
 import CommandMenu from './components/CommandMenu';
@@ -8,11 +9,87 @@ import { getAiResponseStream } from './services/geminiService';
 import { getIPAddress } from './services/ipService';
 import { commands } from './commands';
 
+const DownloadIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+        <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+    </svg>
+);
+
+const TiktokVideo: React.FC<{ data: TiktokResult }> = ({ data }) => {
+  const videoNoWm = data.data.find(d => d.type === 'nowatermark')?.url;
+  const videoNoWmHd = data.data.find(d => d.type === 'nowatermark_hd')?.url;
+  const musicUrl = data.music_info?.url;
+
+  return (
+    <div className="w-full">
+      <div className="flex items-center gap-3 mb-3">
+        <img src={data.author.avatar} alt={data.author.nickname} className="w-10 h-10 rounded-full border-2 border-comic-dark" />
+        <span className="font-bold text-comic-dark">{data.author.nickname}</span>
+      </div>
+      <p className="mb-3 text-sm">{data.title}</p>
+      
+      {videoNoWm && (
+        <video
+          controls
+          src={videoNoWm}
+          poster={data.cover}
+          className="w-full rounded-lg border-2 border-comic-dark mb-4"
+        >
+          Browser Anda tidak mendukung tag video.
+        </video>
+      )}
+
+      <div className="space-y-2">
+        <h4 className="font-bold text-comic-primary">Unduh</h4>
+        {videoNoWmHd && (
+          <a href={videoNoWmHd} target="_blank" rel="noopener noreferrer" download className="flex items-center justify-center w-full px-4 py-2 rounded-lg font-bold bg-comic-primary text-white hover:bg-comic-secondary transition-colors duration-200 border-2 border-comic-dark shadow-comic-sm active:shadow-none active:translate-y-px active:translate-x-px">
+            <DownloadIcon /> Video HD
+          </a>
+        )}
+        {videoNoWm && videoNoWmHd !== videoNoWm && (
+          <a href={videoNoWm} target="_blank" rel="noopener noreferrer" download className="flex items-center justify-center w-full px-4 py-2 rounded-lg font-bold bg-comic-primary text-white hover:bg-comic-secondary transition-colors duration-200 border-2 border-comic-dark shadow-comic-sm active:shadow-none active:translate-y-px active:translate-x-px">
+            <DownloadIcon /> Video SD
+          </a>
+        )}
+        {musicUrl && (
+          <a href={musicUrl} target="_blank" rel="noopener noreferrer" download className="flex items-center justify-center w-full px-4 py-2 rounded-lg font-bold bg-comic-user text-comic-dark hover:bg-yellow-400 transition-colors duration-200 border-2 border-comic-dark shadow-comic-sm active:shadow-none active:translate-y-px active:translate-x-px">
+            <DownloadIcon /> Musik (MP3)
+          </a>
+        )}
+      </div>
+    </div>
+  );
+};
+
+
 const HamburgerIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
     </svg>
 );
+
+const downloadTiktokVideo = async (url: string): Promise<TiktokResult> => {
+    const API_BASE_URL = 'https://api.sxtream.xyz/downloader/tiktok';
+    try {
+        const response = await fetch(`${API_BASE_URL}?url=${encodeURIComponent(url)}`);
+        if (!response.ok) {
+            try {
+                const errorData = await response.json();
+                throw new Error(errorData.message || `Network response was not ok: ${response.statusText}`);
+            } catch (e) {
+                throw new Error(`Network response was not ok: ${response.statusText}`);
+            }
+        }
+        const data: TiktokApiResponse = await response.json();
+        if (data.status !== 200 || !data.result) {
+            throw new Error(data.message || 'API returned an error or invalid data.');
+        }
+        return data.result;
+    } catch (error) {
+        console.error('Error fetching TikTok video:', error);
+        throw error;
+    }
+};
 
 const App: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([
@@ -93,6 +170,33 @@ const App: React.FC = () => {
         break;
       case '/ai':
         handleAiInteraction(prompt);
+        break;
+      case '/tiktok':
+        const botMessageId = Date.now();
+        addMessage(Sender.Bot, "Sedang memproses video TikTok...");
+        try {
+            const result = await downloadTiktokVideo(prompt);
+            setMessages(prev => [
+                ...prev.slice(0, -1),
+                {
+                    id: botMessageId,
+                    sender: Sender.Bot,
+                    component: <TiktokVideo data={result} />
+                }
+            ]);
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan tidak diketahui.";
+            setMessages(prev => [
+                ...prev.slice(0, -1),
+                {
+                    id: botMessageId,
+                    sender: Sender.Bot,
+                    text: `Maaf, terjadi kesalahan: ${errorMessage}`
+                }
+            ]);
+        } finally {
+            setIsLoading(false);
+        }
         break;
       default:
         if (!commandValue.startsWith('/')) {
