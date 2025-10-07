@@ -4,7 +4,8 @@ import ChatMessage from './components/ChatMessage';
 import InputBar from './components/InputBar';
 import CommandMenu from './components/CommandMenu';
 import CommandParameterInput from './components/CommandParameterInput';
-import { getAiResponseStream } from './services/geminiService';
+import ApiKeyModal from './components/ApiKeyModal';
+import { getAiResponseStream, AiProvider } from './services/aiService';
 import { getIPAddress } from './services/ipService';
 import { commands } from './commands';
 
@@ -112,6 +113,10 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [parameterPrompt, setParameterPrompt] = useState<{ command: Command } | null>(null);
+  const [aiProvider, setAiProvider] = useState<AiProvider>('puter');
+  const [geminiApiKey, setGeminiApiKey] = useState<string | null>(null);
+  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
+  const [pendingCommand, setPendingCommand] = useState<string | null>(null);
   
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -129,7 +134,7 @@ const App: React.FC = () => {
     setMessages(prev => [...prev, { id: botMessageId, sender: Sender.Bot, text: '▌' }]);
     
     try {
-      const stream = await getAiResponseStream(aiPrompt);
+      const stream = await getAiResponseStream(aiPrompt, aiProvider, geminiApiKey || undefined);
       let firstChunk = true;
       for await (const chunk of stream) {
         setMessages(prev => prev.map(msg => {
@@ -145,24 +150,41 @@ const App: React.FC = () => {
         }));
       }
     } catch (error) {
+      console.error("AI Interaction Error:", error);
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
-      const fullError = `Maaf, terjadi kesalahan saat berkomunikasi dengan AI: ${errorMessage}`;
+      if (errorMessage.includes("Invalid Gemini API Key")) {
+          setGeminiApiKey(null);
+          setAiProvider('puter');
+          setMessages(prev => prev.map(msg => 
+            msg.id === botMessageId ? { ...msg, text: `Kunci API Gemini tidak valid. Beralih kembali ke AI default (Puter). Silakan coba lagi.` } : msg
+          ));
+          return; 
+      }
+      const userFriendlyError = "Maaf, terjadi masalah saat menghubungi AI. Layanan mungkin sedang mengalami gangguan. Silakan coba lagi beberapa saat lagi.";
       setMessages(prev => prev.map(msg => {
         if (msg.id === botMessageId) {
-          return { ...msg, text: fullError };
+          return { ...msg, text: userFriendlyError };
         }
         return msg;
       }));
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [aiProvider, geminiApiKey, addMessage]);
 
   const processCommand = useCallback(async (text: string) => {
     setIsLoading(true);
 
     const [commandValue, ...args] = text.trim().split(' ');
     const prompt = args.join(' ');
+
+    const isAiRelated = !commandValue.startsWith('/') || commandValue.toLowerCase() === '/ai';
+    if (isAiRelated && aiProvider === 'gemini' && !geminiApiKey) {
+        setPendingCommand(text);
+        setIsApiKeyModalOpen(true);
+        setIsLoading(false);
+        return;
+    }
 
     switch (commandValue.toLowerCase()) {
       case '/ping':
@@ -176,8 +198,8 @@ const App: React.FC = () => {
             const ip = await getIPAddress();
             addMessage(Sender.Bot, `Alamat IP publik Anda adalah: ${ip}`);
         } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan tidak diketahui.";
-            addMessage(Sender.Bot, `Maaf, terjadi kesalahan saat mengambil alamat IP: ${errorMessage}`);
+            console.error("IP Fetch Error:", error);
+            addMessage(Sender.Bot, `Maaf, gagal mengambil alamat IP Anda. Layanan mungkin sedang tidak tersedia saat ini.`);
         } finally {
             setIsLoading(false);
         }
@@ -199,13 +221,14 @@ const App: React.FC = () => {
                 }
             ]);
         } catch (error) {
+            console.error("TikTok Download Error:", error);
             const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan tidak diketahui.";
             setMessages(prev => [
                 ...prev.slice(0, -1),
                 {
                     id: botMessageId,
                     sender: Sender.Bot,
-                    text: `Maaf, terjadi kesalahan saat mengunduh video TikTok: ${errorMessage}`
+                    text: `Gagal mengunduh video TikTok. Pesan dari server: "${errorMessage}" Pastikan URL Anda valid dan coba lagi.`
                 }
             ]);
         } finally {
@@ -221,7 +244,7 @@ const App: React.FC = () => {
         }
         break;
     }
-  }, [addMessage, handleAiInteraction]);
+  }, [addMessage, handleAiInteraction, aiProvider, geminiApiKey]);
 
   const handleSendMessage = useCallback(async (text: string) => {
     if (!text.trim()) return;
@@ -259,6 +282,33 @@ const App: React.FC = () => {
     handleSendMessage(fullCommand);
   }, [parameterPrompt, handleSendMessage]);
 
+  const handleSwitchAiProvider = () => {
+    if (aiProvider === 'puter') {
+        if (!geminiApiKey) {
+            setIsApiKeyModalOpen(true);
+        } else {
+            setAiProvider('gemini');
+        }
+    } else {
+        setAiProvider('puter');
+    }
+  };
+
+  const handleSaveApiKey = (key: string) => {
+    setGeminiApiKey(key);
+    setAiProvider('gemini');
+    setIsApiKeyModalOpen(false);
+    if (pendingCommand) {
+        processCommand(pendingCommand);
+        setPendingCommand(null);
+    }
+  };
+
+  const closeApiKeyModal = () => {
+    setIsApiKeyModalOpen(false);
+    setPendingCommand(null);
+  };
+
   const closeMenu = useCallback(() => setIsMenuOpen(false), []);
   const closeParameterInput = useCallback(() => setParameterPrompt(null), []);
 
@@ -268,6 +318,12 @@ const App: React.FC = () => {
         isOpen={isMenuOpen} 
         onClose={closeMenu} 
         onSelectCommand={handleSelectCommand}
+      />
+
+      <ApiKeyModal 
+        isOpen={isApiKeyModalOpen}
+        onClose={closeApiKeyModal}
+        onSave={handleSaveApiKey}
       />
 
       {parameterPrompt && (
@@ -288,14 +344,20 @@ const App: React.FC = () => {
           <HamburgerIcon />
         </button>
         <h1 className="text-3xl font-bold text-comic-dark absolute left-1/2 -translate-x-1/2 tracking-wider">AZZBOT</h1>
-        <div className="w-8"></div>
+        <button 
+            onClick={handleSwitchAiProvider}
+            className="text-sm font-bold bg-white border-2 border-comic-dark rounded-full px-3 py-1 shadow-comic-sm hover:bg-comic-primary hover:text-white transition-colors capitalize"
+            aria-label={`Current AI Provider: ${aiProvider}, click to switch`}
+        >
+          AI: {aiProvider}
+        </button>
       </header>
 
       <main className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((msg) => (
           <ChatMessage key={msg.id} message={msg} />
         ))}
-        {isLoading && !messages[messages.length-1].text?.endsWith('▌') && (
+        {isLoading && !messages.some(m => m.id === messages[messages.length-1].id && m.text === '▌') && (
             <div className="flex items-start gap-3 justify-start">
                 <div className="w-10 h-10 rounded-full bg-comic-primary border-2 border-comic-dark flex items-center justify-center flex-shrink-0">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor">

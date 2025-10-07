@@ -31,6 +31,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onClose, onSave }) =>
   return (
     <div 
       className="fixed inset-0 bg-black bg-opacity-60 z-40 flex items-start sm:items-center justify-center p-4 pt-20 sm:pt-4"
+      onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-labelledby="api-key-dialog-title"
@@ -58,6 +59,13 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onClose, onSave }) =>
             />
           </div>
           <div className="bg-comic-dark/5 px-6 py-4 flex justify-end items-center gap-3 rounded-b-2xl border-t-4 border-comic-dark">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 rounded-lg font-bold text-comic-dark bg-white hover:bg-gray-200 transition-colors duration-200 border-2 border-comic-dark shadow-comic-sm active:shadow-none active:translate-y-px active:translate-x-px"
+            >
+              Batal
+            </button>
             <button
               type="submit"
               disabled={!apiKey.trim()}
