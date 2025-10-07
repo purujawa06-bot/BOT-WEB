@@ -1,10 +1,8 @@
-import React, { forwardRef } from 'react';
+import React, { useState, forwardRef } from 'react';
 
 interface InputBarProps {
   onSendMessage: (message: string) => void;
   isLoading: boolean;
-  value: string;
-  onChange: (value: string) => void;
 }
 
 const SendIcon = () => (
@@ -14,11 +12,14 @@ const SendIcon = () => (
 );
 
 
-const InputBar = forwardRef<HTMLInputElement, InputBarProps>(({ onSendMessage, isLoading, value, onChange }, ref) => {
+const InputBar = forwardRef<HTMLInputElement, InputBarProps>(({ onSendMessage, isLoading }, ref) => {
+  const [value, setValue] = useState('');
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (value.trim() && !isLoading) {
       onSendMessage(value);
+      setValue('');
     }
   };
 
@@ -29,7 +30,7 @@ const InputBar = forwardRef<HTMLInputElement, InputBarProps>(({ onSendMessage, i
           ref={ref}
           type="text"
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => setValue(e.target.value)}
           placeholder={isLoading ? "AI sedang berpikir..." : "Ketikkan perintah atau pesan..."}
           disabled={isLoading}
           className="w-full bg-white text-comic-dark font-bold rounded-full py-3 pl-5 pr-20 focus:outline-none focus:ring-4 focus:ring-comic-primary/50 transition duration-300 border-2 border-comic-dark"

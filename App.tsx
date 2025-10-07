@@ -111,7 +111,6 @@ const App: React.FC = () => {
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [inputValue, setInputValue] = useState('');
   const [parameterPrompt, setParameterPrompt] = useState<{ command: Command } | null>(null);
   
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -228,7 +227,6 @@ const App: React.FC = () => {
     if (!text.trim()) return;
 
     addMessage(Sender.User, text);
-    setInputValue('');
 
     const [commandValue] = text.trim().split(' ');
     const command = commands.find(c => c.value === commandValue.toLowerCase());
@@ -319,8 +317,6 @@ const App: React.FC = () => {
         ref={inputRef}
         onSendMessage={handleSendMessage} 
         isLoading={isLoading}
-        value={inputValue}
-        onChange={setInputValue}
       />
     </div>
   );

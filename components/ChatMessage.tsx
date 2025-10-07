@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, Fragment } from 'react';
 import { Message, Sender } from '../types';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -56,6 +56,32 @@ const CodeBlock = ({ node, inline, className, children, ...props }: any) => {
     );
 };
 
+const LinkifiedText: React.FC<{ text: string }> = React.memo(({ text }) => {
+    // Regex to find URLs and split the text by them. The capturing group is important for split.
+    const urlRegex = /(\b(?:https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
+    const parts = text.split(urlRegex);
+
+    return (
+        <p className="whitespace-pre-wrap">
+            {parts.map((part, index) => 
+                index % 2 === 1 ? ( // URLs will be at odd indices
+                    <a
+                        key={index}
+                        href={part}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-comic-primary font-bold hover:underline"
+                    >
+                        {part}
+                    </a>
+                ) : (
+                    <Fragment key={index}>{part}</Fragment>
+                )
+            )}
+        </p>
+    );
+});
+
 
 const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
   const isUser = message.sender === Sender.User;
@@ -84,8 +110,8 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
   return (
     <div className={containerClasses}>
       {!isUser && <BotIcon />}
-      <div className={`max-w-xl lg:max-w-2xl rounded-2xl p-4 shadow-comic border-2 border-comic-dark break-all ${bubbleClasses}`}>
-        {isUser && message.text && <p className="whitespace-pre-wrap">{message.text}</p>}
+      <div className={`max-w-xl lg:max-w-2xl rounded-2xl p-4 shadow-comic border-2 border-comic-dark break-words ${bubbleClasses}`}>
+        {isUser && message.text && <LinkifiedText text={message.text} />}
         {isTypingPlaceholder && (
            <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-comic-dark/50 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
