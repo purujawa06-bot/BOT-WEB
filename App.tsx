@@ -106,7 +106,7 @@ const App: React.FC = () => {
       {
         id: 1,
         sender: Sender.Bot,
-        text: "Selamat datang di Robot AI! Ketik pesan atau klik ikon menu di kiri atas untuk melihat daftar perintah."
+        text: "Selamat datang di AZZBOT! Ketik pesan atau klik ikon menu di kiri atas untuk melihat daftar perintah."
       }
   ]);
   const [isLoading, setIsLoading] = useState(false);
@@ -289,7 +289,7 @@ const App: React.FC = () => {
         >
           <HamburgerIcon />
         </button>
-        <h1 className="text-3xl font-bold text-comic-dark absolute left-1/2 -translate-x-1/2 tracking-wider">ROBOT AI</h1>
+        <h1 className="text-3xl font-bold text-comic-dark absolute left-1/2 -translate-x-1/2 tracking-wider">AZZBOT</h1>
         <div className="w-8"></div>
       </header>
 

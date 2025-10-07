@@ -1,5 +1,5 @@
 {
-  "name": "Gemini AI Robot",
-  "description": "A versatile AI robot with a Telegram-like '/' command interface. It can chat, provide system information, and more using the Gemini API.",
+  "name": "AZZBOT",
+  "description": "AZZBOT is a versatile AI assistant with a command interface. It can chat, provide system information, download TikTok videos, and more.",
   "requestFramePermissions": []
 }
