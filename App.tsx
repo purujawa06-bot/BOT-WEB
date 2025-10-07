@@ -178,7 +178,7 @@ const App: React.FC = () => {
     const [commandValue, ...args] = text.trim().split(' ');
     const prompt = args.join(' ');
 
-    const isAiRelated = !commandValue.startsWith('/') || commandValue.toLowerCase() === '/ai';
+    const isAiRelated = !commandValue.startsWith('/');
     if (isAiRelated && aiProvider === 'gemini' && !geminiApiKey) {
         setPendingCommand(text);
         setIsApiKeyModalOpen(true);
@@ -203,9 +203,6 @@ const App: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
-        break;
-      case '/ai':
-        await handleAiInteraction(prompt);
         break;
       case '/tiktok':
         const botMessageId = Date.now();

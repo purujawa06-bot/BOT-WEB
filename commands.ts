@@ -1,4 +1,3 @@
-
 import { Command } from './types';
 
 export const commands: Command[] = [
@@ -13,13 +12,6 @@ export const commands: Command[] = [
     description: 'Tampilkan alamat IP publik Anda.', 
     value: '/ip', 
     category: 'Informasi' 
-  },
-  { 
-    name: '/ai [pertanyaan]', 
-    description: 'Ajukan pertanyaan ke AI.', 
-    value: '/ai', 
-    requiresParam: true, 
-    category: 'AI' 
   },
   {
     name: '/tiktok [url]',
