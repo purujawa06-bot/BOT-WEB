@@ -32,7 +32,7 @@ const CommandParameterInput: React.FC<CommandParameterInputProps> = ({ isOpen, c
 
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-60 z-40 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black bg-opacity-60 z-40 flex items-start sm:items-center justify-center p-4 pt-20 sm:pt-4"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
