@@ -4,7 +4,7 @@ import ChatMessage from './components/ChatMessage';
 import InputBar from './components/InputBar';
 import CommandMenu from './components/CommandMenu';
 import CommandParameterInput from './components/CommandParameterInput';
-import { getAiResponse } from './services/geminiService';
+import { getAiResponseStream } from './services/geminiService';
 import { getIPAddress } from './services/ipService';
 import { commands } from './commands';
 
@@ -15,7 +15,13 @@ const HamburgerIcon = () => (
 );
 
 const App: React.FC = () => {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>([
+      {
+        id: 1,
+        sender: Sender.Bot,
+        text: "Selamat datang di Robot AI! Ketik pesan atau klik ikon menu di kiri atas untuk melihat daftar perintah."
+      }
+  ]);
   const [isLoading, setIsLoading] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -29,14 +35,6 @@ const App: React.FC = () => {
   }, []);
   
   useEffect(() => {
-     addMessage(
-        Sender.Bot, 
-        "Selamat datang di Robot AI serbaguna! Klik ikon menu di pojok kiri atas untuk melihat daftar perintah."
-    );
-     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
@@ -46,25 +44,65 @@ const App: React.FC = () => {
     const [commandValue, ...args] = text.trim().split(' ');
     const prompt = args.join(' ');
 
+    const handleAiInteraction = async (aiPrompt: string) => {
+      const botMessageId = Date.now() + Math.random();
+      // Add a placeholder message with a special character
+      setMessages(prev => [...prev, { id: botMessageId, sender: Sender.Bot, text: '▌' }]);
+      
+      try {
+        const stream = await getAiResponseStream(aiPrompt);
+        let firstChunk = true;
+        for await (const chunk of stream) {
+          setMessages(prev => prev.map(msg => {
+            if (msg.id === botMessageId) {
+              let newText = msg.text || '';
+              if (firstChunk) {
+                newText = ''; // Clear placeholder on first chunk
+                firstChunk = false;
+              }
+              return { ...msg, text: newText + (chunk.text || '') };
+            }
+            return msg;
+          }));
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+        const fullError = `Maaf, terjadi kesalahan: ${errorMessage}.`;
+        setMessages(prev => prev.map(msg => {
+          if (msg.id === botMessageId) {
+            return { ...msg, text: fullError };
+          }
+          return msg;
+        }));
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     switch (commandValue.toLowerCase()) {
       case '/ping':
-        setTimeout(() => addMessage(Sender.Bot, 'Pong!'), 500);
+        setTimeout(() => {
+          addMessage(Sender.Bot, 'Pong!');
+          setIsLoading(false);
+        }, 500);
         break;
       case '/ip':
         const ip = await getIPAddress();
         addMessage(Sender.Bot, `Alamat IP publik Anda adalah: ${ip}`);
+        setIsLoading(false);
         break;
       case '/ai':
-        const aiResponse = await getAiResponse(prompt);
-        addMessage(Sender.Bot, aiResponse);
+        handleAiInteraction(prompt);
         break;
       default:
-        const defaultAiResponse = await getAiResponse(text);
-        addMessage(Sender.Bot, defaultAiResponse);
+        if (!commandValue.startsWith('/')) {
+          handleAiInteraction(text);
+        } else {
+          addMessage(Sender.Bot, `Perintah '${commandValue}' tidak dikenali.`);
+          setIsLoading(false);
+        }
         break;
     }
-
-    setIsLoading(false);
   }, [addMessage]);
 
   const handleSendMessage = async (text: string) => {
@@ -100,21 +138,9 @@ const App: React.FC = () => {
     const { command } = parameterPrompt;
     const fullCommand = `${command.value} ${parameter}`;
     
-    // Update the last user message which was just the command
-    setMessages(prev => {
-        const newMessages = [...prev];
-        const lastMessage = newMessages[newMessages.length - 1];
-        if (lastMessage && lastMessage.sender === Sender.User && lastMessage.text === command.value) {
-            lastMessage.text = fullCommand;
-        } else {
-            // This case handles when the modal was opened from the menu directly
-            addMessage(Sender.User, fullCommand);
-        }
-        return newMessages;
-    });
-
+    // Don't add user message here, handleSendMessage will do it
     setParameterPrompt(null);
-    processCommand(fullCommand);
+    handleSendMessage(fullCommand);
   };
 
   return (
@@ -150,7 +176,7 @@ const App: React.FC = () => {
         {messages.map((msg) => (
           <ChatMessage key={msg.id} message={msg} />
         ))}
-        {isLoading && (
+        {isLoading && !messages[messages.length-1].text?.endsWith('▌') && (
             <div className="flex items-start gap-3 justify-start">
                 <div className="w-10 h-10 rounded-full bg-comic-primary border-2 border-comic-dark flex items-center justify-center flex-shrink-0">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor">

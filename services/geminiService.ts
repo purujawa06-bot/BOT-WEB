@@ -1,22 +1,32 @@
-import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
+// This service now uses puter.ai.chat()
+declare const puter: any;
 
-// Assume process.env.API_KEY is available in the execution environment as per guidelines.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
-
-export async function getAiResponse(prompt: string): Promise<string> {
+/**
+ * Gets a streaming AI response from puter.ai.
+ * @param prompt The user's prompt.
+ * @returns An async iterable stream of response chunks.
+ */
+export async function getAiResponseStream(prompt: string): Promise<AsyncIterable<{ text: string }>> {
   try {
-    const response: GenerateContentResponse = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-      config: {
-        systemInstruction: "You are a helpful AI assistant. Format your responses using markdown. Use code blocks for code snippets, lists for bullet points, and bold/italics for emphasis."
-      }
-    });
+    const messages = [
+        {
+            role: 'system',
+            content: "You are a helpful and friendly AI assistant named Robot AI. Format your responses using markdown. Use code blocks for code snippets, lists for bullet points, and bold/italics for emphasis."
+        },
+        {
+            role: 'user',
+            content: prompt
+        }
+    ];
 
-    return response.text;
+    const responseStream = await puter.ai.chat(messages, { 
+      model: 'claude-3-haiku-20240307', // A fast and capable model available on Puter
+      stream: true,
+    });
+    return responseStream;
   } catch (error) {
-    console.error("Error getting AI response:", error);
-    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
-    return `Maaf, terjadi kesalahan saat menghubungi AI: ${errorMessage}. Silakan coba lagi.`;
+    console.error("Error getting AI stream:", error);
+    // Re-throw the error to be handled by the calling function
+    throw error;
   }
 }

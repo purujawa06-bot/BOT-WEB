@@ -78,13 +78,22 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
       h2: ({ node, ...props }: any) => <h2 className="text-xl font-bold my-2" {...props} />,
       h3: ({ node, ...props }: any) => <h3 className="text-lg font-bold my-2" {...props} />,
   };
+  
+  const isTypingPlaceholder = !isUser && message.text === '▌';
 
   return (
     <div className={containerClasses}>
       {!isUser && <BotIcon />}
       <div className={`max-w-xl lg:max-w-2xl rounded-2xl p-4 shadow-comic border-2 border-comic-dark ${bubbleClasses}`}>
         {isUser && message.text && <p className="whitespace-pre-wrap">{message.text}</p>}
-        {!isUser && message.text && (
+        {isTypingPlaceholder && (
+           <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-comic-dark/50 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                <div className="w-2 h-2 bg-comic-dark/50 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                <div className="w-2 h-2 bg-comic-dark/50 rounded-full animate-bounce"></div>
+            </div>
+        )}
+        {!isUser && message.text && !isTypingPlaceholder && (
             <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={markdownComponents}
