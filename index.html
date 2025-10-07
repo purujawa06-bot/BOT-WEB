@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gemini AI Robot - Comic Edition</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              'comic': ['"Comic Neue"', 'cursive'],
+            },
+            colors: {
+              'comic-bg': '#FDF6E3', // light cream
+              'comic-dark': '#073642', // dark slate
+              'comic-primary': '#268BD2', // blue
+              'comic-secondary': '#D33682', // magenta
+              'comic-user': '#F4D03F', // yellow
+              'comic-bot': '#FFFFFF',
+            },
+            boxShadow: {
+              'comic': '4px 4px 0px #073642',
+              'comic-sm': '2px 2px 0px #073642',
+            }
+          }
+        }
+      }
+    </script>
+    <script src="https://js.puter.com/v2/"></script>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-markdown": "https://aistudiocdn.com/react-markdown@^9.0.1",
+    "remark-gfm": "https://aistudiocdn.com/remark-gfm@^4.0.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^0.14.0"
+  }
+}
+</script>
+    <style>
+        body {
+            font-family: 'Comic Neue', cursive;
+            background-image: radial-gradient(circle at 1px 1px, rgba(0,0,0,0.1) 1px, transparent 0);
+            background-size: 20px 20px;
+        }
+        ::selection {
+            background-color: #F4D03F;
+            color: #073642;
+        }
+    </style>
+</head>
+  <body class="bg-comic-bg text-comic-dark">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

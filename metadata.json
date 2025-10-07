@@ -1,0 +1,5 @@
+{
+  "name": "Gemini AI Robot",
+  "description": "A versatile AI robot with a Telegram-like '/' command interface. It can chat, provide system information, and more using the Gemini API.",
+  "requestFramePermissions": []
+}
