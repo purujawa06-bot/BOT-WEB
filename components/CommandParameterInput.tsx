@@ -80,4 +80,4 @@ const CommandParameterInput: React.FC<CommandParameterInputProps> = ({ isOpen, c
   );
 };
 
-export default CommandParameterInput;
+export default React.memo(CommandParameterInput);

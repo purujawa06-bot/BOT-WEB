@@ -112,4 +112,4 @@ const CommandMenu: React.FC<CommandMenuProps> = ({ isOpen, onClose, onSelectComm
   );
 };
 
-export default CommandMenu;
+export default React.memo(CommandMenu);

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Message, Sender, Command, TiktokResult, TiktokApiResponse } from './types';
 import ChatMessage from './components/ChatMessage';
@@ -158,7 +157,7 @@ const App: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [setMessages]);
+  }, []);
 
   const processCommand = useCallback(async (text: string) => {
     setIsLoading(true);
@@ -225,7 +224,7 @@ const App: React.FC = () => {
     }
   }, [addMessage, handleAiInteraction]);
 
-  const handleSendMessage = async (text: string) => {
+  const handleSendMessage = useCallback(async (text: string) => {
     if (!text.trim()) return;
 
     addMessage(Sender.User, text);
@@ -240,9 +239,9 @@ const App: React.FC = () => {
     }
     
     processCommand(text);
-  };
+  }, [addMessage, processCommand]);
 
-  const handleSelectCommand = (command: Command) => {
+  const handleSelectCommand = useCallback((command: Command) => {
     setIsMenuOpen(false);
     if (command.requiresParam) {
       setParameterPrompt({ command });
@@ -250,9 +249,9 @@ const App: React.FC = () => {
       handleSendMessage(command.value);
     }
     setTimeout(() => inputRef.current?.focus(), 100);
-  };
+  }, [handleSendMessage]);
   
-  const handleParameterSubmit = (parameter: string) => {
+  const handleParameterSubmit = useCallback((parameter: string) => {
     if (!parameterPrompt) return;
     
     const { command } = parameterPrompt;
@@ -260,13 +259,16 @@ const App: React.FC = () => {
     
     setParameterPrompt(null);
     handleSendMessage(fullCommand);
-  };
+  }, [parameterPrompt, handleSendMessage]);
+
+  const closeMenu = useCallback(() => setIsMenuOpen(false), []);
+  const closeParameterInput = useCallback(() => setParameterPrompt(null), []);
 
   return (
     <div className="flex flex-col h-dvh bg-comic-bg font-comic">
       <CommandMenu 
         isOpen={isMenuOpen} 
-        onClose={() => setIsMenuOpen(false)} 
+        onClose={closeMenu} 
         onSelectCommand={handleSelectCommand}
       />
 
@@ -274,7 +276,7 @@ const App: React.FC = () => {
         <CommandParameterInput
             isOpen={!!parameterPrompt}
             command={parameterPrompt.command}
-            onClose={() => setParameterPrompt(null)}
+            onClose={closeParameterInput}
             onSubmit={handleParameterSubmit}
         />
       )}

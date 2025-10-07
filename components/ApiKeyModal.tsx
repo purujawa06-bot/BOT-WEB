@@ -72,4 +72,4 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onClose, onSave }) =>
   );
 };
 
-export default ApiKeyModal;
+export default React.memo(ApiKeyModal);

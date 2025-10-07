@@ -84,7 +84,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
   return (
     <div className={containerClasses}>
       {!isUser && <BotIcon />}
-      <div className={`max-w-xl lg:max-w-2xl rounded-2xl p-4 shadow-comic border-2 border-comic-dark ${bubbleClasses}`}>
+      <div className={`max-w-xl lg:max-w-2xl rounded-2xl p-4 shadow-comic border-2 border-comic-dark break-words ${bubbleClasses}`}>
         {isUser && message.text && <p className="whitespace-pre-wrap">{message.text}</p>}
         {isTypingPlaceholder && (
            <div className="flex items-center space-x-2">
@@ -108,4 +108,4 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
   );
 };
 
-export default ChatMessage;
+export default React.memo(ChatMessage);

@@ -48,4 +48,4 @@ const InputBar = forwardRef<HTMLInputElement, InputBarProps>(({ onSendMessage, i
   );
 });
 
-export default InputBar;
+export default React.memo(InputBar);
