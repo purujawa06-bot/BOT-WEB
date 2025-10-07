@@ -144,7 +144,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-comic-bg font-comic">
+    <div className="flex flex-col h-dvh bg-comic-bg font-comic">
       <CommandMenu 
         isOpen={isMenuOpen} 
         onClose={() => setIsMenuOpen(false)} 

@@ -46,7 +46,7 @@ const CommandMenu: React.FC<CommandMenuProps> = ({ isOpen, onClose, onSelectComm
       ></div>
 
       <div
-        className={`fixed top-0 left-0 h-full w-full sm:w-80 bg-comic-bg shadow-lg z-30 transform transition-transform duration-300 ease-in-out border-r-4 border-comic-dark ${
+        className={`fixed top-0 left-0 h-dvh w-full sm:w-80 bg-comic-bg shadow-lg z-30 transform transition-transform duration-300 ease-in-out border-r-4 border-comic-dark ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
         role="dialog"
