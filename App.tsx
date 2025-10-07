@@ -16,17 +16,26 @@ const DownloadIcon = () => (
 );
 
 const TiktokVideo: React.FC<{ data: TiktokResult }> = ({ data }) => {
-  const videoNoWm = data.data.find(d => d.type === 'nowatermark')?.url;
-  const videoNoWmHd = data.data.find(d => d.type === 'nowatermark_hd')?.url;
+  const videoNoWm = data.data?.find(d => d.type === 'nowatermark')?.url;
+  const videoNoWmHd = data.data?.find(d => d.type === 'nowatermark_hd')?.url;
   const musicUrl = data.music_info?.url;
+
+  const hasDownloads = !!(videoNoWm || videoNoWmHd || musicUrl);
+
+  // If no downloadable content is found, show an error.
+  if (!hasDownloads) {
+    return <p className="text-comic-dark">Gagal memproses video. URL mungkin tidak valid atau video tidak tersedia.</p>;
+  }
 
   return (
     <div className="w-full">
-      <div className="flex items-center gap-3 mb-3">
-        <img src={data.author.avatar} alt={data.author.nickname} className="w-10 h-10 rounded-full border-2 border-comic-dark" />
-        <span className="font-bold text-comic-dark">{data.author.nickname}</span>
-      </div>
-      <p className="mb-3 text-sm">{data.title}</p>
+      {data.author && (
+        <div className="flex items-center gap-3 mb-3">
+          <img src={data.author.avatar} alt={data.author.nickname} className="w-10 h-10 rounded-full border-2 border-comic-dark" />
+          <span className="font-bold text-comic-dark">{data.author.nickname}</span>
+        </div>
+      )}
+      {data.title && <p className="mb-3 text-sm">{data.title}</p>}
       
       {videoNoWm && (
         <video
@@ -39,24 +48,26 @@ const TiktokVideo: React.FC<{ data: TiktokResult }> = ({ data }) => {
         </video>
       )}
 
-      <div className="space-y-2">
-        <h4 className="font-bold text-comic-primary">Unduh</h4>
-        {videoNoWmHd && (
-          <a href={videoNoWmHd} target="_blank" rel="noopener noreferrer" download className="flex items-center justify-center w-full px-4 py-2 rounded-lg font-bold bg-comic-primary text-white hover:bg-comic-secondary transition-colors duration-200 border-2 border-comic-dark shadow-comic-sm active:shadow-none active:translate-y-px active:translate-x-px">
-            <DownloadIcon /> Video HD
-          </a>
-        )}
-        {videoNoWm && videoNoWmHd !== videoNoWm && (
-          <a href={videoNoWm} target="_blank" rel="noopener noreferrer" download className="flex items-center justify-center w-full px-4 py-2 rounded-lg font-bold bg-comic-primary text-white hover:bg-comic-secondary transition-colors duration-200 border-2 border-comic-dark shadow-comic-sm active:shadow-none active:translate-y-px active:translate-x-px">
-            <DownloadIcon /> Video SD
-          </a>
-        )}
-        {musicUrl && (
-          <a href={musicUrl} target="_blank" rel="noopener noreferrer" download className="flex items-center justify-center w-full px-4 py-2 rounded-lg font-bold bg-comic-user text-comic-dark hover:bg-yellow-400 transition-colors duration-200 border-2 border-comic-dark shadow-comic-sm active:shadow-none active:translate-y-px active:translate-x-px">
-            <DownloadIcon /> Musik (MP3)
-          </a>
-        )}
-      </div>
+      {hasDownloads && (
+        <div className="space-y-2">
+          <h4 className="font-bold text-comic-primary">Unduh</h4>
+          {videoNoWmHd && (
+            <a href={videoNoWmHd} target="_blank" rel="noopener noreferrer" download className="flex items-center justify-center w-full px-4 py-2 rounded-lg font-bold bg-comic-primary text-white hover:bg-comic-secondary transition-colors duration-200 border-2 border-comic-dark shadow-comic-sm active:shadow-none active:translate-y-px active:translate-x-px">
+              <DownloadIcon /> Video HD
+            </a>
+          )}
+          {videoNoWm && videoNoWmHd !== videoNoWm && (
+            <a href={videoNoWm} target="_blank" rel="noopener noreferrer" download className="flex items-center justify-center w-full px-4 py-2 rounded-lg font-bold bg-comic-primary text-white hover:bg-comic-secondary transition-colors duration-200 border-2 border-comic-dark shadow-comic-sm active:shadow-none active:translate-y-px active:translate-x-px">
+              <DownloadIcon /> Video SD
+            </a>
+          )}
+          {musicUrl && (
+            <a href={musicUrl} target="_blank" rel="noopener noreferrer" download className="flex items-center justify-center w-full px-4 py-2 rounded-lg font-bold bg-comic-user text-comic-dark hover:bg-yellow-400 transition-colors duration-200 border-2 border-comic-dark shadow-comic-sm active:shadow-none active:translate-y-px active:translate-x-px">
+              <DownloadIcon /> Musik (MP3)
+            </a>
+          )}
+        </div>
+      )}
     </div>
   );
 };
@@ -115,46 +126,45 @@ const App: React.FC = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  const handleAiInteraction = useCallback(async (aiPrompt: string) => {
+    const botMessageId = Date.now() + Math.random();
+    setMessages(prev => [...prev, { id: botMessageId, sender: Sender.Bot, text: '▌' }]);
+    
+    try {
+      const stream = await getAiResponseStream(aiPrompt);
+      let firstChunk = true;
+      for await (const chunk of stream) {
+        setMessages(prev => prev.map(msg => {
+          if (msg.id === botMessageId) {
+            let newText = msg.text || '';
+            if (firstChunk) {
+              newText = ''; 
+              firstChunk = false;
+            }
+            return { ...msg, text: newText + (chunk.text || '') };
+          }
+          return msg;
+        }));
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+      const fullError = `Maaf, terjadi kesalahan saat berkomunikasi dengan AI: ${errorMessage}`;
+      setMessages(prev => prev.map(msg => {
+        if (msg.id === botMessageId) {
+          return { ...msg, text: fullError };
+        }
+        return msg;
+      }));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [setMessages]);
+
   const processCommand = useCallback(async (text: string) => {
     setIsLoading(true);
 
     const [commandValue, ...args] = text.trim().split(' ');
     const prompt = args.join(' ');
-
-    const handleAiInteraction = async (aiPrompt: string) => {
-      const botMessageId = Date.now() + Math.random();
-      // Add a placeholder message with a special character
-      setMessages(prev => [...prev, { id: botMessageId, sender: Sender.Bot, text: '▌' }]);
-      
-      try {
-        const stream = await getAiResponseStream(aiPrompt);
-        let firstChunk = true;
-        for await (const chunk of stream) {
-          setMessages(prev => prev.map(msg => {
-            if (msg.id === botMessageId) {
-              let newText = msg.text || '';
-              if (firstChunk) {
-                newText = ''; // Clear placeholder on first chunk
-                firstChunk = false;
-              }
-              return { ...msg, text: newText + (chunk.text || '') };
-            }
-            return msg;
-          }));
-        }
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
-        const fullError = `Maaf, terjadi kesalahan: ${errorMessage}.`;
-        setMessages(prev => prev.map(msg => {
-          if (msg.id === botMessageId) {
-            return { ...msg, text: fullError };
-          }
-          return msg;
-        }));
-      } finally {
-        setIsLoading(false);
-      }
-    };
 
     switch (commandValue.toLowerCase()) {
       case '/ping':
@@ -164,12 +174,18 @@ const App: React.FC = () => {
         }, 500);
         break;
       case '/ip':
-        const ip = await getIPAddress();
-        addMessage(Sender.Bot, `Alamat IP publik Anda adalah: ${ip}`);
-        setIsLoading(false);
+        try {
+            const ip = await getIPAddress();
+            addMessage(Sender.Bot, `Alamat IP publik Anda adalah: ${ip}`);
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan tidak diketahui.";
+            addMessage(Sender.Bot, `Maaf, terjadi kesalahan saat mengambil alamat IP: ${errorMessage}`);
+        } finally {
+            setIsLoading(false);
+        }
         break;
       case '/ai':
-        handleAiInteraction(prompt);
+        await handleAiInteraction(prompt);
         break;
       case '/tiktok':
         const botMessageId = Date.now();
@@ -191,7 +207,7 @@ const App: React.FC = () => {
                 {
                     id: botMessageId,
                     sender: Sender.Bot,
-                    text: `Maaf, terjadi kesalahan: ${errorMessage}`
+                    text: `Maaf, terjadi kesalahan saat mengunduh video TikTok: ${errorMessage}`
                 }
             ]);
         } finally {
@@ -200,14 +216,14 @@ const App: React.FC = () => {
         break;
       default:
         if (!commandValue.startsWith('/')) {
-          handleAiInteraction(text);
+          await handleAiInteraction(text);
         } else {
           addMessage(Sender.Bot, `Perintah '${commandValue}' tidak dikenali.`);
           setIsLoading(false);
         }
         break;
     }
-  }, [addMessage]);
+  }, [addMessage, handleAiInteraction]);
 
   const handleSendMessage = async (text: string) => {
     if (!text.trim()) return;
@@ -242,7 +258,6 @@ const App: React.FC = () => {
     const { command } = parameterPrompt;
     const fullCommand = `${command.value} ${parameter}`;
     
-    // Don't add user message here, handleSendMessage will do it
     setParameterPrompt(null);
     handleSendMessage(fullCommand);
   };
